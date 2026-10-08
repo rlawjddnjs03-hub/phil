@@ -4018,3 +4018,28 @@ schedule.json watch items pruned (19.7KB).
 - **P2 (runner quota split): still PROPOSED, low urgency.** The operator
   quota file has been idle since 10-05, and the overspend has not
   recurred.
+
+## 2026-10-08 03:5xZ - operator machine: gamma-api returns HTTP 451 (hourly, operator runner)
+
+- **Symptom:** on the operator machine (Windows, paper tick, no Pearl
+  Connect mech tools in session) every `core/resolve.py` fetch of
+  `gamma-api.polymarket.com/markets/<id>` failed after 3 tries with
+  `HTTP Error 451: Unavailable For Legal Reasons` - all open ledger and
+  forecast markets (1193094, 5194672, 5204549, the Parcl Dec31 set, ...).
+  The cloud runner reached gamma normally at 02:19Z. 451 is a
+  jurisdictional block, not an outage, so this is the machine's egress
+  location (VPN off / region change), not Polymarket being down.
+- **Effect:** this runner cannot settle, scan, screen or quote; I ran
+  this tick as settle-attempt + log only (no scan, no research, no
+  forecasts), since every candidate price would be unreadable. Real-twin
+  execution from this machine would hit the same wall.
+- **Also:** `core/lease.py acquire` crashed with a CalledProcessError on
+  `git commit-tree <empty tree> -m ...` (exit 128) before any lease JSON
+  was printed. Likely the empty-tree object is absent from this clone's
+  object store or git identity is unset for commit-tree; lease.py could
+  `git hash-object -w -t tree /dev/null` first. I proceeded as for
+  `written:false` (unprotected), which is harmless this tick because no
+  scan/bet ran.
+- **Ask:** check the operator machine's network egress; consider having
+  loop.sh probe gamma once and downgrade to LIGHT with a warning on 451,
+  the same way it downgrades real->paper when the signer is not ready.
